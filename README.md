@@ -1,6 +1,6 @@
 # upload2unimsrdm
 
-`upload2unimsrdm` is a command-line tool (so no graphical interface) for uploading data to the Uni Münster InvenioRDM-based repositories [**datasafe**](https://datasafe.uni-muenster.de) (archive, data is deleted after 10 years) and [**datastore**](https://datastore.uni-muenster.de) (FAIR, DOI registration, public).
+`upload2unimsrdm` is a command-line tool (so no graphical interface) for uploading data to the Uni Münster InvenioRDM-based repositories [**datasafe**](https://datasafe.uni-muenster.de) (archive, data is deleted after 10 years, only accessible from within the University network) and [**datastore**](https://datastore.uni-muenster.de) (FAIR, DOI registration, public).
 
 ## Disclaimer
 
@@ -13,8 +13,8 @@ See [Advanced Usage.md](./Advanced%20Usage.md) and [Developer.md](./Developer.md
 ### Linux
 
 1. Download the tool:
-   - Either via browser: https://uni-muenster.sciebo.de/s/4LWLWmDzHSwkCCe
-   - Or via cURL/wget: `curl https://uni-muenster.sciebo.de/s/4LWLWmDzHSwkCCe/download/upload2unimsrdm --output upload2unimsrdm`
+   - Either via browser: <https://github.com/ulbmuenster/upload2unimsrdm/releases>
+   - Or via cURL/wget: `curl -L https://github.com/ulbmuenster/upload2unimsrdm/releases/download/0.1.0/upload2unimsrdm --output upload2unimsrdm`
 2. Open a terminal and navigate to the folder where the file was downloaded, e.g., `cd $HOME/Downloads`
 3. Make the file executable: `chmod +x upload2unimsrdm`
 4. Run the tool: `./upload2unimsrdm`
@@ -23,14 +23,14 @@ Optional: Move the uploader to `/usr/bin` to make it accessible globally: `sudo 
 
 ### Windows
 
-1. Download the uploader: <https://uni-muenster.sciebo.de/s/PBnadKmgC6ymCQx> and place it on the desktop.
+1. Download the uploader: <https://github.com/ulbmuenster/upload2unimsrdm/releases/download/0.1.0/upload2unimsrdm.exe> and place it on the desktop.
 2. Open the Start menu -> type `cmd` and open the command prompt.
 3. Type `cd Desktop` and press <kbd>Enter</kbd>.
 4. Test the tool by running: `upload2unimsrdm`
 ![](assets/1024-896.png)
 5. Start the upload: Type `upload2unimsrdm --system`, followed by a space and the system to upload to, then a space and `--token`, followed by your API key (without `<>`, paste it via right-click or Ctrl+V), then a space followed by `--title` and the title you want the dataset to have, and then another space followed by `--files`. Here, you can simply drag and drop the file/folder into the window after a space. Confirm by pressing <kbd>Enter</kbd>.
 
-## Usage 
+## Usage
 
 ### Basic Usage
 
@@ -43,7 +43,7 @@ upload2unimsrdm \
   --files /path/to/data
 ```
 
-**Important**: In order to proceed you need at least one creator and a publishing date. You always need to add the relevant metadata in the Web UI after uploading your data. The tool will set the current year if no publication date was passed.
+**Important**: In order to proceed you need at least one creator and a publishing date. You always need to add the relevant metadata in the Web UI after uploading your data. The tool will set the current year if no publication date was passed (only possible via metadata file).
 
 ### Command-Line Arguments
 
@@ -67,6 +67,15 @@ upload2unimsrdm \
   --files data.csv \
   --description "A comprehensive dataset from our research" \
   --keywords physics --keywords experiment
+```
+
+Or use a complete metadata file:
+
+```bash
+upload2unimsrdm \
+  --system datastore \
+  --files data.csv \
+  --metadata-file metadata.json
 ```
 
 See [`metadata_example.json`](./metadata_example.json) for the full InvenioRDM metadata structure.
