@@ -1,0 +1,25 @@
+[project]
+name = "upload2unimsrdm"
+version = "0.1.0"
+description = "CLI tool to upload data to InvenioRDM repositories"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31.0",
+    "click>=8.1.7",
+    "tqdm>=4.66.0",
+    "rich>=13.0.0",
+    "dotenv>=0.9.9",
+    "pyyaml>=6.0.3",
+    "pyinstaller>=6.17.0",
+]
+
+[project.scripts]
+upload2unimsrdm = "upload2unimsrdm.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = []
