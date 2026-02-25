@@ -65,8 +65,9 @@ Basic usage:\n
 @click.option(
     "--files",
     required=False,
+    multiple=True,
     type=click.Path(exists=True),
-    help="Path to file or folder to upload (required)",
+    help="Path to file or folder to upload (can be specified multiple times, e.g., --files file1.txt --files file2.txt) (required)",
 )
 @click.option(
     "--system",
@@ -111,7 +112,7 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         missing = []
         if not title:
             missing.append("--title")
-        if not files:
+        if not files or len(files) == 0:
             missing.append("--files")
         if not system:
             missing.append("--system")
@@ -151,21 +152,29 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         # Initialize uploader
         uploader = InvenioRDMUploader(base_url=base_url, token=token, verify_ssl=verify_ssl)
 
-        # Collect files to upload
-        files_path = Path(files)
+        # Collect files to upload from all provided paths
+        file_list = []
         zip_created = False
         temp_zip_path = None
 
-        # Handle directory zipping if requested
-        if zip_directory and files_path.is_dir():
-            console.print(f"[cyan]Zipping directory: {files_path.name}. This can take some time![/cyan]")
-            temp_zip_path = create_zip(files_path, output_name=files_path.name)
-            console.print(f"[green]✓ Created zip file:[/green] {temp_zip_path.name} ({format_size(temp_zip_path.stat().st_size)})")
-            file_list = [temp_zip_path]
-            files_path = temp_zip_path
-            zip_created = True
-        else:
-            file_list = collect_files(files_path)
+        # Handle multiple file/folder paths
+        for file_path_str in files:
+            files_path = Path(file_path_str)
+
+            # Handle directory zipping if requested
+            if zip_directory and files_path.is_dir():
+                if len(files) > 1:
+                    console.print(f"[yellow]Warning: --zip-directory option works only with a single directory. Skipping zip for {files_path.name}[/yellow]")
+                    file_list.extend(collect_files(files_path))
+                else:
+                    console.print(f"[cyan]Zipping directory: {files_path.name}. This can take some time![/cyan]")
+                    temp_zip_path = create_zip(files_path, output_name=files_path.name)
+                    console.print(f"[green]✓ Created zip file:[/green] {temp_zip_path.name} ({format_size(temp_zip_path.stat().st_size)})")
+                    file_list = [temp_zip_path]
+                    zip_created = True
+                    break  # Only process this one zipped directory
+            else:
+                file_list.extend(collect_files(files_path))
 
         if not file_list:
             console.print("[red]✗ Error: No files found to upload[/red]")
@@ -203,7 +212,24 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
 
         # Upload files
         console.print("\n[bold cyan]Uploading files...[/bold cyan]")
-        uploader.upload_files(draft_id, file_list, files_path)
+        # Determine base path for relative path calculation
+        if zip_created and temp_zip_path:
+            base_path = temp_zip_path
+        elif len(files) == 1:
+            base_path = Path(files[0])
+        else:
+            # For multiple paths, use None to just use filenames
+            # Find common parent directory
+            all_paths = [Path(f) for f in files]
+            try:
+                from os.path import commonpath
+                common = Path(commonpath(all_paths))
+                base_path = common if common.is_dir() else common.parent
+            except ValueError:
+                # No common path, use first file's parent
+                base_path = all_paths[0].parent if all_paths[0].is_file() else all_paths[0]
+
+        uploader.upload_files(draft_id, file_list, base_path)
 
         # Clean up temporary zip file if created
         if zip_created and temp_zip_path and temp_zip_path.exists():
