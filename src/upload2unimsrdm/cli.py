@@ -33,6 +33,33 @@ import os
 console = Console()
 
 
+def is_archive_file(filepath: Path) -> bool:
+    """Check if a file is already an archive.
+
+    Args:
+        filepath: Path to the file
+
+    Returns:
+        True if file is an archive, False otherwise
+    """
+    archive_extensions = {
+        '.zip', '.rar', '.tar', '.gz', '.bz2', '.xz', '.7z', '.Z',
+        '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz'
+    }
+
+    # Check for single extension
+    if filepath.suffix.lower() in archive_extensions:
+        return True
+
+    # Check for double extensions like .tar.gz
+    if len(filepath.suffixes) >= 2:
+        double_ext = ''.join(filepath.suffixes[-2:]).lower()
+        if double_ext in archive_extensions:
+            return True
+
+    return False
+
+
 def get_help_text():
     """Generate dynamic help text with current system URLs."""
     return f"""Upload data to one of the research data repositories of University of Münster.
@@ -161,8 +188,12 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         for file_path_str in files:
             files_path = Path(file_path_str)
 
+            # Check if file is already an archive
+            if zip_directory and files_path.is_file() and is_archive_file(files_path):
+                console.print(f"[cyan]File '{files_path.name}' is already an archive, skipping zip operation[/cyan]")
+                file_list.append(files_path)
             # Handle directory zipping if requested
-            if zip_directory and files_path.is_dir():
+            elif zip_directory and files_path.is_dir():
                 if len(files) > 1:
                     console.print(f"[yellow]Warning: --zip-directory option works only with a single directory. Skipping zip for {files_path.name}[/yellow]")
                     file_list.extend(collect_files(files_path))
