@@ -34,28 +34,48 @@ console = Console()
 
 
 def is_archive_file(filepath: Path) -> bool:
-    """Check if a file is already an archive.
+    """Check if a file is already an archive using file signatures.
 
     Args:
         filepath: Path to the file
 
     Returns:
-        True if file is an archive, False otherwise
+        True if file bytes match a known archive/compression signature,
+        False otherwise.
     """
-    archive_extensions = {
-        '.zip', '.rar', '.tar', '.gz', '.bz2', '.xz', '.7z', '.Z',
-        '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz'
-    }
+    if not filepath.exists() or not filepath.is_file():
+        return False
 
-    # Check for single extension
-    if filepath.suffix.lower() in archive_extensions:
+    try:
+        # 512 bytes are enough for all signatures below and tar header offset checks.
+        header = filepath.read_bytes()[:512]
+    except OSError:
+        return False
+
+    archive_signatures = (
+        # ZIP local file header / empty archive / spanned archive
+        b"PK\x03\x04",
+        b"PK\x05\x06",
+        b"PK\x07\x08",
+        # RAR 4.x / RAR 5.x
+        b"Rar!\x1a\x07\x00",
+        b"Rar!\x1a\x07\x01\x00",
+        # 7z
+        b"7z\xbc\xaf\x27\x1c",
+        # gzip, bzip2, xz, UNIX compress (.Z)
+        b"\x1f\x8b",
+        b"BZh",
+        b"\xfd7zXZ\x00",
+        b"\x1f\x9d",
+        b"\x1f\xa0",
+    )
+
+    if any(header.startswith(sig) for sig in archive_signatures):
         return True
 
-    # Check for double extensions like .tar.gz
-    if len(filepath.suffixes) >= 2:
-        double_ext = ''.join(filepath.suffixes[-2:]).lower()
-        if double_ext in archive_extensions:
-            return True
+    # tar stores its marker at byte offset 257 instead of the beginning.
+    if len(header) >= 265 and header[257:262] == b"ustar":
+        return True
 
     return False
 
@@ -75,8 +95,7 @@ Basic usage:\n
 
 
 @click.command(
-    context_settings=dict(help_option_names=['-h', '--help']),
-    help=get_help_text()
+    context_settings=dict(help_option_names=["-h", "--help"]), help=get_help_text()
 )
 @click.option(
     "--token",
@@ -128,7 +147,17 @@ Basic usage:\n
     help="JSON or YAML file with complete InvenioRDM metadata structure (overrides other metadata options)",
 )
 @click.pass_context
-def main(ctx, token, title, files, system, zip_directory, description, keywords, metadata_file):
+def main(
+    ctx,
+    token,
+    title,
+    files,
+    system,
+    zip_directory,
+    description,
+    keywords,
+    metadata_file,
+):
     try:
         # If no arguments provided at all, show help
         if not any([title, files, system, token]):
@@ -145,7 +174,9 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
             missing.append("--system")
 
         if missing:
-            console.print(f"\n[red]✗ Error:[/red] Missing required option(s): {', '.join(missing)}")
+            console.print(
+                f"\n[red]✗ Error:[/red] Missing required option(s): {', '.join(missing)}"
+            )
             console.print("\n[dim]Use --help to see all available options[/dim]")
             sys.exit(2)
 
@@ -163,8 +194,12 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
             # if still no token, not via CLI or Env: show error
             console.print("\n[red]✗ Error:[/red] Missing option '--token'.")
             console.print("\n[yellow]To get an API token:[/yellow]")
-            console.print(f"  • datasafe:  https://datasafe.uni-muenster.de/account/settings/applications/tokens/new/")
-            console.print(f"  • datastore: https://datastore.uni-muenster.de/account/settings/applications/tokens/new/")
+            console.print(
+                f"  • datasafe:  https://datasafe.uni-muenster.de/account/settings/applications/tokens/new/"
+            )
+            console.print(
+                f"  • datastore: https://datastore.uni-muenster.de/account/settings/applications/tokens/new/"
+            )
             console.print("\n[yellow]You can provide the token via:[/yellow]")
             console.print("  • Command line: --token YOUR_TOKEN")
             console.print("  • Environment variable: INVENIORDM_TOKEN=YOUR_TOKEN")
@@ -177,7 +212,9 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         verify_ssl = system.lower() != "dev"
 
         # Initialize uploader
-        uploader = InvenioRDMUploader(base_url=base_url, token=token, verify_ssl=verify_ssl)
+        uploader = InvenioRDMUploader(
+            base_url=base_url, token=token, verify_ssl=verify_ssl
+        )
 
         # Collect files to upload from all provided paths
         file_list = []
@@ -190,17 +227,25 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
 
             # Check if file is already an archive
             if zip_directory and files_path.is_file() and is_archive_file(files_path):
-                console.print(f"[cyan]File '{files_path.name}' is already an archive, skipping zip operation[/cyan]")
+                console.print(
+                    f"[cyan]File '{files_path.name}' is already an archive, skipping zip operation[/cyan]"
+                )
                 file_list.append(files_path)
             # Handle directory zipping if requested
             elif zip_directory and files_path.is_dir():
                 if len(files) > 1:
-                    console.print(f"[yellow]Warning: --zip-directory option works only with a single directory. Skipping zip for {files_path.name}[/yellow]")
+                    console.print(
+                        f"[yellow]Warning: --zip-directory option works only with a single directory. Skipping zip for {files_path.name}[/yellow]"
+                    )
                     file_list.extend(collect_files(files_path))
                 else:
-                    console.print(f"[cyan]Zipping directory: {files_path.name}. This can take some time![/cyan]")
+                    console.print(
+                        f"[cyan]Zipping directory: {files_path.name}. This can take some time![/cyan]"
+                    )
                     temp_zip_path = create_zip(files_path, output_name=files_path.name)
-                    console.print(f"[green]✓ Created zip file:[/green] {temp_zip_path.name} ({format_size(temp_zip_path.stat().st_size)})")
+                    console.print(
+                        f"[green]✓ Created zip file:[/green] {temp_zip_path.name} ({format_size(temp_zip_path.stat().st_size)})"
+                    )
                     file_list = [temp_zip_path]
                     zip_created = True
                     break  # Only process this one zipped directory
@@ -212,8 +257,12 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
             sys.exit(1)
         # if file list if >100 we cant upload it without zipping, so we show an error
         if len(file_list) > 100 and not zip_directory:
-            console.print(f"[red]✗ Error: Found {len(file_list)} files. Uploading more than 100 files without zipping is not supported.[/red]")
-            console.print("[yellow]Consider using the --zip-directory option to zip the folder before uploading.[/yellow]")
+            console.print(
+                f"[red]✗ Error: Found {len(file_list)} files. Uploading more than 100 files without zipping is not supported.[/red]"
+            )
+            console.print(
+                "[yellow]Consider using the --zip-directory option to zip the folder before uploading.[/yellow]"
+            )
             sys.exit(1)
         console.print(f"[cyan]Found {len(file_list)} file(s) to upload[/cyan]")
 
@@ -225,17 +274,13 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         else:
             # Build metadata from CLI options
             metadata = build_metadata_from_options(
-                title=title,
-                description=description,
-                keywords=keywords
+                title=title, description=description, keywords=keywords
             )
 
         # Create draft with progress spinner
         console.print("\n[bold cyan]Creating draft record...[/bold cyan]")
         with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold cyan]Creating draft..."),
-            transient=False
+            SpinnerColumn(), TextColumn("[bold cyan]Creating draft..."), transient=False
         ) as progress:
             progress.add_task("draft", total=None)
             draft_id, draft_url = uploader.create_draft(metadata, system)
@@ -254,11 +299,14 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
             all_paths = [Path(f) for f in files]
             try:
                 from os.path import commonpath
+
                 common = Path(commonpath(all_paths))
                 base_path = common if common.is_dir() else common.parent
             except ValueError:
                 # No common path, use first file's parent
-                base_path = all_paths[0].parent if all_paths[0].is_file() else all_paths[0]
+                base_path = (
+                    all_paths[0].parent if all_paths[0].is_file() else all_paths[0]
+                )
 
         uploader.upload_files(draft_id, file_list, base_path)
 
@@ -277,7 +325,7 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
             f"  3. Publish the record when ready",
             title="[bold green]Success[/bold green]",
             border_style="green",
-            expand=False
+            expand=False,
         )
         console.print("\n")
         console.print(success_panel)
@@ -286,11 +334,15 @@ def main(ctx, token, title, files, system, zip_directory, description, keywords,
         console.print("\n\n[yellow]Upload cancelled by user[/yellow]")
         sys.exit(1)
     except click.exceptions.MissingParameter as e:
-        if '--token' in str(e):
+        if "--token" in str(e):
             console.print(f"\n[red]✗ Error:[/red] {e}")
             console.print("\n[yellow]To get an API token:[/yellow]")
-            console.print(f"  • datasafe:  https://datasafe.uni-muenster.de/account/settings/applications/tokens/new/")
-            console.print(f"  • datastore: https://datastore.uni-muenster.de/account/settings/applications/tokens/new/")
+            console.print(
+                f"  • datasafe:  https://datasafe.uni-muenster.de/account/settings/applications/tokens/new/"
+            )
+            console.print(
+                f"  • datastore: https://datastore.uni-muenster.de/account/settings/applications/tokens/new/"
+            )
         else:
             console.print(f"\n[red]✗ Error:[/red] {e}")
         sys.exit(1)
@@ -310,19 +362,23 @@ def load_metadata_file(filepath: str) -> dict:
     """
     path = Path(filepath)
 
-    with open(path, 'r') as f:
-        if path.suffix.lower() in ['.json']:
+    with open(path, "r") as f:
+        if path.suffix.lower() in [".json"]:
             return json.load(f)
-        elif path.suffix.lower() in ['.yaml', '.yml']:
+        elif path.suffix.lower() in [".yaml", ".yml"]:
             try:
                 return yaml.safe_load(f)
             except ImportError:
                 raise RuntimeError("Error loading YAML file.")
         else:
-            raise ValueError(f"Unsupported metadata file format: {path.suffix}. Use .json or .yaml")
+            raise ValueError(
+                f"Unsupported metadata file format: {path.suffix}. Use .json or .yaml"
+            )
 
 
-def build_metadata_from_options(title: str, description: str = None, keywords: tuple = None) -> dict:
+def build_metadata_from_options(
+    title: str, description: str = None, keywords: tuple = None
+) -> dict:
     """Build InvenioRDM metadata from CLI options.
 
     Args:
