@@ -3,7 +3,22 @@ name = "upload2unimsrdm"
 version = "0.1.0"
 description = "CLI tool to upload data to InvenioRDM repositories"
 readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Universität Münster" },
+]
 requires-python = ">=3.9"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
 dependencies = [
     "requests>=2.31.0",
     "click>=8.1.7",
@@ -14,6 +29,9 @@ dependencies = [
     "pyinstaller>=6.17.0",
 ]
 
+[project.urls]
+Repository = "https://github.com/ulbmuenster/upload2unimsrdm"
+
 [project.scripts]
 upload2unimsrdm = "upload2unimsrdm.cli:main"
 
@@ -22,4 +40,6 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=8.4.2",
+]
