@@ -64,9 +64,31 @@ jobs:
         run: uv run pyinstaller upload2unimsrdm.spec
 
       - name: Rename artifact
-        run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos
+        run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-arm64
 
       - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/upload2unimsrdm-macos
+          files: dist/upload2unimsrdm-macos-arm64
+
+  build-macos-intel:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build executable
+        run: uv run pyinstaller upload2unimsrdm.spec
+
+      - name: Rename artifact
+        run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-x86_64
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/upload2unimsrdm-macos-x86_64
