@@ -1,0 +1,72 @@
+name: Build Release Executables
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build executable
+        run: uv run pyinstaller upload2unimsrdm.spec
+
+      - name: Rename artifact
+        run: mv dist/upload2unimsrdm dist/upload2unimsrdm-linux
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/upload2unimsrdm-linux
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build executable
+        run: uv run pyinstaller upload2unimsrdm.spec
+
+      - name: Rename artifact
+        run: Move-Item dist\upload2unimsrdm.exe dist\upload2unimsrdm-windows.exe
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/upload2unimsrdm-windows.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build executable
+        run: uv run pyinstaller upload2unimsrdm.spec
+
+      - name: Rename artifact
+        run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/upload2unimsrdm-macos
