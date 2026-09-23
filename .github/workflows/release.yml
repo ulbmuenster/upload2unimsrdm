@@ -72,18 +72,18 @@ jobs:
           files: dist/upload2unimsrdm-macos-arm64
 
   build-macos-intel:
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - name: Install uv (x86_64, via Rosetta)
+        run: arch -x86_64 /bin/bash -c "$(curl -LsSf https://astral.sh/uv/install.sh)"
 
       - name: Install dependencies
-        run: uv sync
+        run: arch -x86_64 $HOME/.local/bin/uv sync
 
       - name: Build executable
-        run: uv run pyinstaller upload2unimsrdm.spec
+        run: arch -x86_64 $HOME/.local/bin/uv run pyinstaller upload2unimsrdm.spec
 
       - name: Rename artifact
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-x86_64
