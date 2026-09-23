@@ -77,7 +77,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv (x86_64, via Rosetta)
-        run: arch -x86_64 /bin/bash -c "$(curl -LsSf https://astral.sh/uv/install.sh)"
+        run: |
+          curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-apple-darwin.tar.gz | tar xz -C /tmp
+          mkdir -p "$HOME/.local/bin"
+          mv /tmp/uv-x86_64-apple-darwin/uv "$HOME/.local/bin/uv"
 
       - name: Install dependencies
         run: arch -x86_64 $HOME/.local/bin/uv sync
