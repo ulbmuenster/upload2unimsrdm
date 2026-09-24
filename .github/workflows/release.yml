@@ -3,6 +3,7 @@ name: Build Release Executables
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build-linux:
@@ -23,6 +24,7 @@ jobs:
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-linux
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/upload2unimsrdm-linux
@@ -45,6 +47,7 @@ jobs:
         run: Move-Item dist\upload2unimsrdm.exe dist\upload2unimsrdm-windows.exe
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/upload2unimsrdm-windows.exe
@@ -67,31 +70,30 @@ jobs:
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-arm64
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/upload2unimsrdm-macos-arm64
 
   build-macos-intel:
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv (x86_64, via Rosetta)
-        run: |
-          curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-apple-darwin.tar.gz | tar xz -C /tmp
-          mkdir -p "$HOME/.local/bin"
-          mv /tmp/uv-x86_64-apple-darwin/uv "$HOME/.local/bin/uv"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: arch -x86_64 $HOME/.local/bin/uv sync
+        run: uv sync
 
       - name: Build executable
-        run: arch -x86_64 $HOME/.local/bin/uv run pyinstaller upload2unimsrdm.spec
+        run: uv run pyinstaller upload2unimsrdm.spec
 
       - name: Rename artifact
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-x86_64
 
       - name: Upload to release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/upload2unimsrdm-macos-x86_64
