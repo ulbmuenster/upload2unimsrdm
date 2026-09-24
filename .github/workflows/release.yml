@@ -23,6 +23,13 @@ jobs:
       - name: Rename artifact
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-linux
 
+      - name: Upload build artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload2unimsrdm-linux
+          path: dist/upload2unimsrdm-linux
+
       - name: Upload to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
@@ -45,6 +52,13 @@ jobs:
 
       - name: Rename artifact
         run: Move-Item dist\upload2unimsrdm.exe dist\upload2unimsrdm-windows.exe
+
+      - name: Upload build artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload2unimsrdm-windows.exe
+          path: dist/upload2unimsrdm-windows.exe
 
       - name: Upload to release
         if: github.event_name == 'release'
@@ -69,6 +83,13 @@ jobs:
       - name: Rename artifact
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-arm64
 
+      - name: Upload build artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload2unimsrdm-macos-arm64
+          path: dist/upload2unimsrdm-macos-arm64
+
       - name: Upload to release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
@@ -91,6 +112,13 @@ jobs:
 
       - name: Rename artifact
         run: mv dist/upload2unimsrdm dist/upload2unimsrdm-macos-x86_64
+
+      - name: Upload build artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload2unimsrdm-macos-x86_64
+          path: dist/upload2unimsrdm-macos-x86_64
 
       - name: Upload to release
         if: github.event_name == 'release'
