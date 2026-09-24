@@ -34,7 +34,7 @@ pip install -e .
 
 ### Option 3: Standalone Executable
 
-Download pre-built executables from the [Releases](../../releases) page, or build your own:
+Download pre-built executables from the [latest release](../../releases/latest), or build your own:
 
 ```bash
 ./build_executable.sh
